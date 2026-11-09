@@ -1,0 +1,98 @@
+---
+title: "DATA 606 Data Project Proposal"
+author: "Esra Dogan"
+---
+
+### Data Preparation
+
+```{r setup, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+library(tidyverse)
+
+ess <- read_csv("https://raw.githubusercontent.com/esradogan3/final_project_606/refs/heads/main/ess11_widowed_65plus.csv")
+
+widowed <- ess |>
+  filter(agea >= 65, agea < 999,    # 999 = age not available
+         maritalb == 5,             # 5 = widowed
+         fltlnl %in% 1:4,           # remove "refused" / "don't know"
+         gndr %in% 1:2) |>
+  mutate(
+    gender  = factor(gndr, levels = 1:2, labels = c("Men", "Women")),
+    lonely  = factor(fltlnl, levels = 1:4,
+                     labels = c("None or almost none of the time",
+                                "Some of the time",
+                                "Most of the time",
+                                "All or almost all of the time"))
+  )
+```
+
+### Research question
+
+**Among widowed adults aged 65 and older, do men feel lonely more often than women?**
+
+- In my current job, I am in contact with many customers, and some of them are people who have lost their spouses. Over time, I noticed that some of them seem much lonelier than others, and I started to wonder whether there might be a difference between widowed men and women. I am 26 and my life experience is limited, so I wanted to see, purely out of curiosity, whether this observation holds up in real data.
+
+### Cases
+
+- Each case is one widowed person aged 65 or older who answered the loneliness question in the European Social Survey.
+- There are `r nrow(widowed)` cases (`r sum(widowed$gender == "Men")` men and `r sum(widowed$gender == "Women")` women) from `r n_distinct(widowed$cntry)` countries.
+
+### Data collection
+
+- The European Social Survey (ESS) is a cross-national survey carried out every two years through face-to-face interviews with randomly selected people aged 15 and over.
+- I use Round 11 (fieldwork 2023–2024). The data was downloaded as a CSV file from the ESS Data Portal after free registration.
+
+### Type of study
+
+- This is an observational study. People were surveyed, not assigned to groups, so I can describe whether loneliness differs between widowed men and women, but not why.
+
+### Data Source
+
+- European Social Survey European Research Infrastructure (ESS ERIC). (2024). *ESS11 – integrated file, edition 4.2* [Data set]. Sikt – Norwegian Agency for Shared Services in Education and Research. <https://ess.sikt.no/>
+
+### Describe your variables
+
+- **Response variable:** how often the person felt lonely in the past week (`fltlnl`). Categorical (ordinal) with four levels, from "none or almost none of the time" to "all or almost all of the time".
+- **Explanatory variable:** gender (`gndr`). Categorical: men or women.
+- Variables used for filtering: age (`agea`) and marital status (`maritalb`).
+
+### Relevant summary statistics
+
+Percentage within each gender:
+
+```{r}
+widowed |>
+  count(gender, lonely) |>
+  group_by(gender) |>
+  mutate(percent = round(100 * n / sum(n), 1)) |>
+  select(-n) |>
+  pivot_wider(names_from = lonely, values_from = percent)
+```
+
+Age of the respondents:
+
+```{r}
+widowed |>
+  group_by(gender) |>
+  summarise(n = n(), mean_age = round(mean(agea), 1), median_age = median(agea))
+```
+
+### Planned analysis and limitations
+
+- In the final project, I will use a **chi-square test of independence** to test whether loneliness and gender are related.
+- Women make up most of the sample, because women usually live longer and are more often widowed. Using percentages within each gender makes the two groups comparable.
+- The ESS provides survey weights so that results represent each country's population. For this proposal I use unweighted data; I will consider the weights in the final project.
+
+### References
+
+- European Social Survey European Research Infrastructure (ESS ERIC). (2024).
+  *ESS11 – integrated file, edition 4.2* [Data set]. Sikt – Norwegian Agency for
+  Shared Services in Education and Research. <https://ess.sikt.no/>
+- ESS11 codebook (included with the data download), used for variable
+  definitions and codes.
+
+### Use of AI
+
+I used Claude (Anthropic) as a tutor while preparing this proposal. It helped me
+find a suitable dataset, turn my observation into a research question, write and
+check the R code, and refine the wording. The research idea comes from my own
+observations at work, and the final choices are my own.
